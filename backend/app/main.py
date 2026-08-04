@@ -12,11 +12,17 @@ from app.api.v1.profile import router as profile_router
 
 from app.config import CORS_ORIGINS
 
+from app.db.base import init_db
+
 app = FastAPI(
     title="ATS Nexus API",
     description="Multi-Tenant Backend API for ATS CV Maker & Checker with Groq/Nvidia/Gemini support & Neon DB",
     version="1.0.0"
 )
+
+@app.on_event("startup")
+async def on_startup():
+    await init_db()
 
 # Configure CORS dynamically from environment configuration
 app.add_middleware(

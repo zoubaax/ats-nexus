@@ -1,11 +1,24 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AuthPage } from './components/auth/AuthPage';
 import { Navbar } from './components/Navbar';
-import { Sparkles, FileText, CheckCircle2, AlertTriangle, UploadCloud, Search, ArrowRight } from 'lucide-react';
+import { ATSChecker } from './components/checker/ATSChecker';
+import { Sparkles, FileText, CheckCircle2, UploadCloud, Search, ArrowRight } from 'lucide-react';
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'checker'
+
+  if (activeTab === 'checker') {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
+        <Navbar />
+        <main className="px-6">
+          <ATSChecker onBack={() => setActiveTab('dashboard')} />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
@@ -23,9 +36,12 @@ const Dashboard = () => {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-indigo-600/20 transition-all flex items-center gap-2 cursor-pointer">
+            <button
+              onClick={() => setActiveTab('checker')}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-indigo-600/20 transition-all flex items-center gap-2 cursor-pointer"
+            >
               <UploadCloud className="w-4 h-4" />
-              <span>Upload New Resume</span>
+              <span>Launch ATS Checker</span>
             </button>
           </div>
         </div>
@@ -44,7 +60,10 @@ const Dashboard = () => {
                 Compare your resume against any Job Description. Uncover keyword gaps and category scores.
               </p>
             </div>
-            <button className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer">
+            <button
+              onClick={() => setActiveTab('checker')}
+              className="w-full py-2.5 bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
               <span>Launch Checker</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
@@ -61,7 +80,10 @@ const Dashboard = () => {
                 Build ATS-friendly PDFs using bullet point rewrites optimized for top AI parsers.
               </p>
             </div>
-            <button className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer">
+            <button
+              onClick={() => setActiveTab('checker')}
+              className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
               <span>Open CV Builder</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
@@ -78,7 +100,10 @@ const Dashboard = () => {
                 Store all your projects, work history, and skills in Neon DB for instant AI tailoring.
               </p>
             </div>
-            <button className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer">
+            <button
+              onClick={() => setActiveTab('checker')}
+              className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
               <span>Manage Profile</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>

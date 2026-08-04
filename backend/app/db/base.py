@@ -16,17 +16,31 @@ DATABASE_URL = os.getenv(
     "postgresql+asyncpg://postgres:postgres@localhost:5432/ats_nexus"
 )
 
-# Convert standard postgres:// or postgresql:// to asyncpg dialect if needed
 if DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
 elif DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
 
+import re
+
+needs_ssl = "sslmode=" in DATABASE_URL or "neon.tech" in DATABASE_URL
+
+# Remove libpq parameters not recognized by asyncpg (like sslmode, channel_binding)
+DATABASE_URL = re.sub(r"[&?]sslmode=[^&]+", "", DATABASE_URL)
+DATABASE_URL = re.sub(r"[&?]channel_binding=[^&]+", "", DATABASE_URL)
+
+connect_args = {}
+if needs_ssl:
+    import ssl
+    ssl_ctx = ssl.create_default_context()
+    connect_args["ssl"] = ssl_ctx
+
 engine = create_async_engine(
     DATABASE_URL,
     echo=False,
     future=True,
-    pool_pre_ping=True
+    pool_pre_ping=True,
+    connect_args=connect_args
 )
 
 AsyncSessionLocal = async_sessionmaker(
@@ -50,3 +64,15 @@ async def get_db():
             raise
         finally:
             await session.close()
+
+
+async def init_db():
+    """Initializes all database tables automatically."""
+    try:
+        import app.db.models  # noqa: F401
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        print("✅ Neon PostgreSQL tables initialized successfully!")
+    except Exception as e:
+        print(f"Database initialization error (Check DATABASE_URL): {e}")
+

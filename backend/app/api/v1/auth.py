@@ -51,20 +51,28 @@ async def register_user(payload: RegisterRequest, db: AsyncSession = Depends(get
             detail="User with this email already exists."
         )
 
-    # Create User
-    new_user = User(
-        email=payload.email,
-        hashed_password=hash_password(payload.password),
-        full_name=payload.full_name
-    )
-    db.add(new_user)
-    await db.flush()
+    try:
+        # Create User
+        new_user = User(
+            email=payload.email,
+            hashed_password=hash_password(payload.password),
+            full_name=payload.full_name
+        )
+        db.add(new_user)
+        await db.flush()
 
-    # Create empty MasterProfile for tenant
-    profile = MasterProfile(user_id=new_user.id)
-    db.add(profile)
-    await db.commit()
-    await db.refresh(new_user)
+        # Create empty MasterProfile for tenant
+        profile = MasterProfile(user_id=new_user.id)
+        db.add(profile)
+        await db.commit()
+        await db.refresh(new_user)
+    except Exception as e:
+        await db.rollback()
+        print(f"Registration error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Registration failed: {str(e)}"
+        )
 
     # Issue JWT token
     access_token = create_access_token(data={"sub": new_user.id, "email": new_user.email})
