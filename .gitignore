@@ -1,5 +1,4 @@
 # Project Specific Files
-
 **/*.pyc
 resume/*.pdf
 run/*.pdf
@@ -8,6 +7,26 @@ cache/
 resume_evaluations.csv
 resume_evaluations_*.csv
 greenhouse_resumes/*
+
+# Environment & Secret Files (Backend & Frontend)
+.env
+.env.*
+!.env.example
+*.env
+backend/.env
+backend/.env.*
+!backend/.env.example
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# Frontend Node Dependencies & Build Output
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/.vite/
+.eslintcache
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
