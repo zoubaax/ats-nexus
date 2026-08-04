@@ -73,8 +73,11 @@ async def init_db():
         import app.db.models  # noqa: F401
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-            # Add missing ai_keys column to existing users table in Neon DB
             await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_keys JSON DEFAULT '{}';"))
+            await conn.execute(text("ALTER TABLE master_profiles ADD COLUMN IF NOT EXISTS phone VARCHAR(100);"))
+            await conn.execute(text("ALTER TABLE master_profiles ADD COLUMN IF NOT EXISTS location VARCHAR(255);"))
+            await conn.execute(text("ALTER TABLE master_profiles ADD COLUMN IF NOT EXISTS certifications JSON DEFAULT '[]';"))
+            await conn.execute(text("ALTER TABLE master_profiles ADD COLUMN IF NOT EXISTS languages JSON DEFAULT '[]';"))
         print("✅ Neon PostgreSQL tables & schema updated successfully!")
     except Exception as e:
         print(f"Database initialization error (Check DATABASE_URL): {e}")

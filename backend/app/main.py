@@ -10,6 +10,7 @@ from app.api.v1.checker import router as checker_router
 from app.api.v1.resumes import router as resumes_router
 from app.api.v1.profile import router as profile_router
 from app.api.v1.settings import router as settings_router
+from app.api.v1.builder import router as builder_router
 
 from app.config import CORS_ORIGINS
 
@@ -41,6 +42,7 @@ app.include_router(checker_router, prefix="/api/v1")
 app.include_router(resumes_router, prefix="/api/v1")
 app.include_router(profile_router, prefix="/api/v1")
 app.include_router(settings_router, prefix="/api/v1")
+app.include_router(builder_router, prefix="/api/v1")
 
 
 @app.get("/")

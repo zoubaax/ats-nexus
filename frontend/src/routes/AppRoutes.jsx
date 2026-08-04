@@ -7,19 +7,7 @@ import { DashboardView } from '../components/dashboard/DashboardView';
 import { ATSChecker } from '../components/checker/ATSChecker';
 import { MasterProfileEditor } from '../components/profile/MasterProfileEditor';
 import { SettingsView } from '../components/settings/SettingsView';
-import { FileText } from 'lucide-react';
-
-const BuilderPlaceholder = () => (
-  <div className="max-w-4xl mx-auto py-12 px-6 font-sans space-y-4 text-center">
-    <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center mx-auto">
-      <FileText className="w-6 h-6" />
-    </div>
-    <h1 className="text-2xl font-bold text-white">ATS CV Builder</h1>
-    <p className="text-xs text-slate-400 max-w-md mx-auto">
-      Use your Master Experience Bank in Neon DB to generate AI-optimized bullet points and ATS-friendly PDF templates.
-    </p>
-  </div>
-);
+import { CVBuilder } from '../components/builder/CVBuilder';
 
 const ProtectedLayout = () => {
   const { user, loading } = useAuth();
@@ -44,7 +32,7 @@ const ProtectedLayout = () => {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardView />} />
           <Route path="/checker" element={<ATSChecker />} />
-          <Route path="/builder" element={<BuilderPlaceholder />} />
+          <Route path="/builder" element={<CVBuilder />} />
           <Route path="/profile" element={<MasterProfileEditor />} />
           <Route path="/settings" element={<SettingsView />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

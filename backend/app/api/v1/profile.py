@@ -25,6 +25,8 @@ class MasterProfileSchema(BaseModel):
     work_history: List[Dict[str, Any]] = []
     projects: List[Dict[str, Any]] = []
     education: List[Dict[str, Any]] = []
+    certifications: List[Dict[str, Any]] = []
+    languages: List[Dict[str, Any]] = []
     links: Dict[str, str] = {}
 
 
@@ -48,12 +50,14 @@ async def get_profile(
     return MasterProfileSchema(
         headline=profile.headline or "",
         summary=profile.summary or "",
-        phone=getattr(profile, "phone", "") or "",
-        location=getattr(profile, "location", "") or "",
+        phone=profile.phone or "",
+        location=profile.location or "",
         skills=profile.skills or [],
         work_history=profile.work_history or [],
         projects=profile.projects or [],
         education=profile.education or [],
+        certifications=profile.certifications or [],
+        languages=profile.languages or [],
         links=profile.links or {}
     )
 
@@ -76,10 +80,14 @@ async def update_profile(
 
     profile.headline = payload.headline
     profile.summary = payload.summary
+    profile.phone = payload.phone
+    profile.location = payload.location
     profile.skills = payload.skills
     profile.work_history = payload.work_history
     profile.projects = payload.projects
     profile.education = payload.education
+    profile.certifications = payload.certifications
+    profile.languages = payload.languages
     profile.links = payload.links
 
     await db.commit()
@@ -88,9 +96,13 @@ async def update_profile(
     return MasterProfileSchema(
         headline=profile.headline or "",
         summary=profile.summary or "",
+        phone=profile.phone or "",
+        location=profile.location or "",
         skills=profile.skills or [],
         work_history=profile.work_history or [],
         projects=profile.projects or [],
         education=profile.education or [],
+        certifications=profile.certifications or [],
+        languages=profile.languages or [],
         links=profile.links or {}
     )
