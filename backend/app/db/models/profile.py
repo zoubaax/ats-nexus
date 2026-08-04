@@ -6,7 +6,7 @@ import uuid
 from datetime import datetime, timezone
 from sqlalchemy import Column, String, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship
-from backend.app.db.base import Base
+from app.db.base import Base
 
 
 class MasterProfile(Base):

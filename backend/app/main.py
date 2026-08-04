@@ -5,9 +5,9 @@ FastAPI Application Entrypoint for ATS Nexus (ATS CV Maker & Checker)
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.app.api.v1.checker import router as checker_router
-from backend.app.api.v1.resumes import router as resumes_router
-from backend.app.api.v1.profile import router as profile_router
+from app.api.v1.checker import router as checker_router
+from app.api.v1.resumes import router as resumes_router
+from app.api.v1.profile import router as profile_router
 
 app = FastAPI(
     title="ATS Nexus API",
