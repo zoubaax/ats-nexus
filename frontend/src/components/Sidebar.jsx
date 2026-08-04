@@ -15,7 +15,7 @@ export const Sidebar = () => {
   ];
 
   return (
-    <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between h-screen sticky top-0 font-sans z-40">
+    <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between h-screen sticky top-0 font-sans z-40 print:hidden">
       <div>
         {/* Brand Header */}
         <div className="p-6 border-b border-slate-800/80 flex items-center gap-3">

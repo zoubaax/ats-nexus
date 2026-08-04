@@ -7,19 +7,7 @@ import {
   FileText,
   Wand2,
   Check,
-  Briefcase,
-  FolderGit2,
-  GraduationCap,
-  Award,
-  Globe,
-  Mail,
-  Phone,
-  MapPin,
-  FolderGit2 as GithubIcon,
-  Link2 as LinkedinIcon,
-  Globe as WebsiteIcon,
-  CheckCircle2,
-  Search
+  CheckCircle2
 } from 'lucide-react';
 
 export const CVBuilder = () => {
@@ -126,6 +114,14 @@ export const CVBuilder = () => {
     );
   }
 
+  // Format single-line contact bar
+  const contactParts = [];
+  if (profile?.location) contactParts.push(profile.location);
+  if (profile?.phone) contactParts.push(profile.phone);
+  if (profile?.links?.github) contactParts.push(profile.links.github.replace('https://', ''));
+  if (profile?.links?.linkedin) contactParts.push(profile.links.linkedin.replace('https://', ''));
+  if (profile?.links?.portfolio) contactParts.push(profile.links.portfolio.replace('https://', ''));
+
   return (
     <div className="max-w-7xl mx-auto py-8 px-6 space-y-8 font-sans">
       
@@ -149,7 +145,7 @@ export const CVBuilder = () => {
                 template === 'modern' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Modern Tech
+              Modern Tech (A4)
             </button>
             <button
               onClick={() => setTemplate('executive')}
@@ -157,7 +153,7 @@ export const CVBuilder = () => {
                 template === 'executive' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Executive Clean
+              Executive Clean (A4)
             </button>
           </div>
 
@@ -167,7 +163,7 @@ export const CVBuilder = () => {
             className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-emerald-600/20 transition-all flex items-center gap-2 cursor-pointer"
           >
             <Printer className="w-4 h-4" />
-            <span>Export ATS PDF</span>
+            <span>Export A4 PDF</span>
           </button>
         </div>
       </div>
@@ -195,7 +191,7 @@ export const CVBuilder = () => {
               {generating ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>Tailoring CV with AI...</span>
+                  <span>Tailoring Technical CV with AI...</span>
                 </>
               ) : (
                 <>
@@ -213,7 +209,7 @@ export const CVBuilder = () => {
             rows={4}
             value={jobDescription}
             onChange={(e) => setJobDescription(e.target.value)}
-            placeholder="Paste the target Job Description here (e.g. We are looking for a Full-Stack Engineer with Docker, RAG, FastAPI, React, PostgreSQL)..."
+            placeholder="Paste target Job Description here to extract technical keywords and STAR bullet points..."
             className="w-full bg-slate-950/80 border border-slate-800 text-slate-200 text-xs rounded-xl p-3 outline-none focus:border-indigo-500 resize-none font-mono"
           />
         </div>
@@ -222,7 +218,7 @@ export const CVBuilder = () => {
           <div className="flex flex-wrap items-center gap-1.5 pt-2">
             <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider mr-2">Keywords Integrated:</span>
             {matchedKeywords.map((kw, kIdx) => (
-              <span key={kIdx} className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[10px] rounded-md font-semibold flex items-center gap-1">
+              <span key={kIdx} className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[10px] rounded-md font-semibold flex items-center gap-1 font-mono">
                 <CheckCircle2 className="w-3 h-3 text-emerald-400" /> {kw}
               </span>
             ))}
@@ -230,71 +226,74 @@ export const CVBuilder = () => {
         )}
       </div>
 
-      {/* Live CV Document Preview Canvas */}
-      <div className="bg-slate-950 p-4 md:p-8 rounded-2xl border border-slate-800 shadow-2xl overflow-x-auto">
+      {/* Live A4 CV Document Preview Canvas */}
+      <div className="flex justify-center bg-slate-950 p-2 md:p-6 rounded-2xl border border-slate-800 shadow-2xl overflow-x-auto print:p-0 print:bg-white print:border-none">
+        
         <div
           id="cv-print-area"
-          className="w-full max-w-[800px] mx-auto bg-white text-slate-900 p-8 md:p-12 shadow-xl rounded-sm text-sm font-sans leading-relaxed print:p-0 print:shadow-none print:w-full print:max-w-none"
+          className="w-[210mm] min-h-[297mm] bg-white text-slate-900 p-[14mm_16mm] shadow-2xl text-[11px] font-sans leading-[1.45] print:w-[210mm] print:h-auto print:p-0 print:shadow-none"
         >
           
           {/* Header */}
-          <div className="border-b-2 border-slate-900 pb-4 mb-6">
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 uppercase">
+          <div className="border-b-2 border-slate-900 pb-2.5 mb-4 text-center">
+            <h1 className="text-xl font-extrabold tracking-wide text-slate-900 uppercase">
               ZOUBAA MOHAMMED
             </h1>
-            <p className="text-sm font-semibold text-slate-700 mt-0.5">
+            <p className="text-[11px] font-bold text-slate-700 mt-0.5 uppercase tracking-wider">
               {targetRole || profile?.headline || 'Full-Stack & GenAI / DevOps Engineer'}
             </p>
 
-            <div className="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs text-slate-600 mt-3 font-medium">
-              {profile?.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {profile.location}</span>}
-              {profile?.phone && <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> {profile.phone}</span>}
-              {profile?.links?.github && <span className="flex items-center gap-1"><GithubIcon className="w-3 h-3" /> {profile.links.github.replace('https://', '')}</span>}
-              {profile?.links?.linkedin && <span className="flex items-center gap-1"><LinkedinIcon className="w-3 h-3" /> {profile.links.linkedin.replace('https://', '')}</span>}
-              {profile?.links?.portfolio && <span className="flex items-center gap-1"><WebsiteIcon className="w-3 h-3" /> {profile.links.portfolio.replace('https://', '')}</span>}
+            <div className="flex flex-wrap items-center justify-center gap-x-2 text-[10px] text-slate-600 mt-1.5 font-medium">
+              {contactParts.map((part, idx) => (
+                <React.Fragment key={idx}>
+                  <span>{part}</span>
+                  {idx < contactParts.length - 1 && <span className="text-slate-400 font-bold">•</span>}
+                </React.Fragment>
+              ))}
             </div>
           </div>
 
           {/* Profile Summary */}
           {profile?.summary && (
-            <div className="mb-6">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-1 mb-2">
+            <div className="mb-4">
+              <h2 className="text-[10.5px] font-extrabold uppercase tracking-wider text-slate-900 border-b border-slate-400 pb-0.5 mb-1.5">
                 Profil Professionnel
               </h2>
-              <p className="text-xs text-slate-700 leading-normal">{profile.summary}</p>
+              <p className="text-[11px] text-slate-800 leading-[1.45] text-justify">{profile.summary}</p>
             </div>
           )}
 
           {/* Work Experience / Stage */}
           {profile?.work_history && profile.work_history.length > 0 && (
-            <div className="mb-6">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-1 mb-3">
+            <div className="mb-4">
+              <h2 className="text-[10.5px] font-extrabold uppercase tracking-wider text-slate-900 border-b border-slate-400 pb-0.5 mb-2">
                 Expériences Professionnelles & Stages
               </h2>
-              <div className="space-y-4">
+              <div className="space-y-2.5">
                 {profile.work_history.map((work, wIdx) => (
                   <div key={wIdx}>
                     <div className="flex justify-between items-baseline">
-                      <span className="font-bold text-xs text-slate-900">
-                        {work.title} <span className="font-normal text-slate-600">| {work.company}</span>
+                      <span className="font-bold text-[11px] text-slate-900">
+                        {work.title} <span className="font-semibold text-slate-700">| {work.company}</span>
                       </span>
-                      <span className="text-[11px] font-semibold text-slate-500">
+                      <span className="text-[10px] font-semibold text-slate-600 font-mono">
                         {work.start_month || work.dates} {work.end_month ? `- ${work.end_month}` : work.is_current ? '- Present' : ''}
                       </span>
                     </div>
 
-                    <div className="mt-1 space-y-1">
+                    <div className="mt-1 space-y-0.5 pl-1">
                       {work.description.split('\n').map((line, bIdx) => {
                         if (!line.trim()) return null;
+                        const formattedLine = line.startsWith('•') ? line : `• ${line}`;
                         return (
-                          <div key={bIdx} className="group/bullet flex items-start justify-between text-xs text-slate-700 leading-snug">
-                            <span>{line.startsWith('•') ? line : `• ${line}`}</span>
+                          <div key={bIdx} className="group/bullet flex items-start justify-between text-[11px] text-slate-800 leading-[1.4]">
+                            <span>{formattedLine}</span>
                             
                             {/* AI Rewrite Action Trigger */}
                             <button
                               onClick={() => handleRewriteBullet(line, wIdx, bIdx)}
                               title="AI STAR Rewrite"
-                              className="opacity-0 group-hover/bullet:opacity-100 ml-2 px-1.5 py-0.5 bg-purple-100 hover:bg-purple-200 text-purple-700 text-[10px] rounded font-semibold transition-opacity cursor-pointer print:hidden flex-shrink-0"
+                              className="opacity-0 group-hover/bullet:opacity-100 ml-2 px-1.5 py-0.5 bg-purple-100 hover:bg-purple-200 text-purple-700 text-[9px] rounded font-semibold transition-opacity cursor-pointer print:hidden flex-shrink-0"
                             >
                               ⚡ Rewrite
                             </button>
@@ -310,28 +309,32 @@ export const CVBuilder = () => {
 
           {/* Projects & Products */}
           {profile?.projects && profile.projects.length > 0 && (
-            <div className="mb-6">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-1 mb-3">
+            <div className="mb-4">
+              <h2 className="text-[10.5px] font-extrabold uppercase tracking-wider text-slate-900 border-b border-slate-400 pb-0.5 mb-2">
                 Projets Réalisés & Products
               </h2>
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 {profile.projects.map((proj, pIdx) => (
                   <div key={pIdx}>
                     <div className="flex justify-between items-baseline">
-                      <span className="font-bold text-xs text-slate-900">
+                      <span className="font-bold text-[11px] text-slate-900">
                         {proj.title}
                       </span>
                       {proj.demo_url && (
-                        <span className="text-[10px] font-mono text-indigo-600">{proj.demo_url.replace('https://', '')}</span>
+                        <span className="text-[10px] font-mono text-indigo-700 font-semibold">{proj.demo_url.replace('https://', '')}</span>
                       )}
                     </div>
                     {proj.tech_stack && (
-                      <p className="text-[11px] font-medium text-slate-600 mt-0.5">
-                        <strong>Stack:</strong> {proj.tech_stack}
+                      <p className="text-[10px] font-semibold text-slate-700 mt-0.5">
+                        <strong className="text-slate-900">Stack:</strong> {proj.tech_stack}
                       </p>
                     )}
                     {proj.description && (
-                      <p className="text-xs text-slate-700 mt-1 whitespace-pre-line">{proj.description}</p>
+                      <div className="text-[11px] text-slate-800 mt-0.5 pl-1 space-y-0.5 leading-[1.4]">
+                        {proj.description.split('\n').map((pLine, plIdx) => (
+                          <p key={plIdx}>{pLine.startsWith('•') ? pLine : `• ${pLine}`}</p>
+                        ))}
+                      </div>
                     )}
                   </div>
                 ))}
@@ -341,18 +344,18 @@ export const CVBuilder = () => {
 
           {/* Education & Formations */}
           {profile?.education && profile.education.length > 0 && (
-            <div className="mb-6">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-1 mb-2">
+            <div className="mb-4">
+              <h2 className="text-[10.5px] font-extrabold uppercase tracking-wider text-slate-900 border-b border-slate-400 pb-0.5 mb-1.5">
                 Formations & Diplômes
               </h2>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {profile.education.map((edu, eIdx) => (
-                  <div key={eIdx} className="flex justify-between text-xs">
+                  <div key={eIdx} className="flex justify-between text-[11px]">
                     <div>
                       <span className="font-bold text-slate-900">{edu.field_of_study || edu.degree}</span>
-                      <span className="text-slate-600"> — {edu.school}</span>
+                      <span className="text-slate-700 font-medium"> — {edu.school}</span>
                     </div>
-                    <span className="text-slate-500 font-medium">
+                    <span className="text-slate-600 font-semibold font-mono">
                       {edu.start_year || edu.dates} {edu.end_year ? `- ${edu.end_year}` : edu.is_current ? '- en cours' : ''}
                     </span>
                   </div>
@@ -362,13 +365,13 @@ export const CVBuilder = () => {
           )}
 
           {/* Skills & Certifications Grid */}
-          <div className="grid grid-cols-2 gap-6 pt-2">
+          <div className="grid grid-cols-2 gap-5 pt-1">
             {profile?.skills && profile.skills.length > 0 && (
               <div>
-                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-1 mb-2">
+                <h2 className="text-[10.5px] font-extrabold uppercase tracking-wider text-slate-900 border-b border-slate-400 pb-0.5 mb-1.5">
                   Compétences Techniques
                 </h2>
-                <p className="text-xs text-slate-700 leading-normal">
+                <p className="text-[10.5px] text-slate-800 leading-[1.4] font-medium">
                   {profile.skills.join(', ')}
                 </p>
               </div>
@@ -376,10 +379,10 @@ export const CVBuilder = () => {
 
             {profile?.certifications && profile.certifications.length > 0 && (
               <div>
-                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900 border-b border-slate-300 pb-1 mb-2">
+                <h2 className="text-[10.5px] font-extrabold uppercase tracking-wider text-slate-900 border-b border-slate-400 pb-0.5 mb-1.5">
                   Certifications
                 </h2>
-                <ul className="text-xs text-slate-700 space-y-1">
+                <ul className="text-[10.5px] text-slate-800 space-y-0.5 font-medium">
                   {profile.certifications.map((cert, cIdx) => (
                     <li key={cIdx}>• {cert.title} ({cert.issuer})</li>
                   ))}
@@ -398,7 +401,7 @@ export const CVBuilder = () => {
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <Wand2 className="w-4 h-4 text-purple-400" />
-                <span>AI STAR Framework Bullet Optimizer</span>
+                <span>AI STAR Technical Bullet Optimizer</span>
               </h3>
               <button
                 onClick={() => setRewritingIndex(null)}
@@ -418,11 +421,11 @@ export const CVBuilder = () => {
             {optimizing ? (
               <div className="py-8 text-center space-y-3">
                 <div className="w-8 h-8 border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin mx-auto" />
-                <p className="text-xs text-purple-300 font-medium">Generating ATS STAR variations with {selectedProvider.toUpperCase()}...</p>
+                <p className="text-xs text-purple-300 font-medium">Generating ATS STAR technical variations with {selectedProvider.toUpperCase()}...</p>
               </div>
             ) : (
               <div className="space-y-3">
-                <label className="block text-[10px] font-bold text-purple-400 uppercase tracking-wider">Select AI Variation to Apply</label>
+                <label className="block text-[10px] font-bold text-purple-400 uppercase tracking-wider">Select Technical Variation to Apply</label>
                 {variations.map((varText, vIdx) => (
                   <button
                     key={vIdx}

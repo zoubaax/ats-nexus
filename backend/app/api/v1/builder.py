@@ -145,31 +145,31 @@ Work History: {json.dumps(profile.work_history or [])}
 Projects: {json.dumps(profile.projects or [])}
 
 INSTRUCTIONS:
-1. Rewrite the professional summary into a high-impact 3-sentence hook tailored to the JD.
-2. Rewrite work experience bullet points to integrate exact keywords from the JD using STAR method.
-3. Re-order technical skills putting keywords required by the JD at the top.
+1. Rewrite the professional summary into a 2 to 3 sentence technical summary tailored to the target JD.
+2. Rewrite work experience and project descriptions into clean, bulleted lines (each starting with a bullet "•") focusing STRICTLY on technical architecture, key technical achievements, tech stack components, and performance metrics matching the JD.
+3. Re-order technical skills putting the hard skills required by the JD at the top.
 4. Extract matched keywords.
 
 Return ONLY a JSON object formatted as follows:
 {{
   "headline": "{payload.target_role}",
-  "summary": "Tailored 3-sentence professional summary...",
+  "summary": "Tailored concise technical summary...",
   "work_history": [
     {{
       "title": "Job Title",
       "company": "Company",
       "dates": "Dates",
-      "description": "• Tailored bullet point 1 with JD keywords\\n• Tailored bullet point 2..."
+      "description": "• Architecture: Designed UML diagrams and implemented RESTful API microservices.\\n• Development: Implemented reactive state management and responsive UI components.\\n• DevOps & Cloud: Deployed containerized applications with Docker and CI/CD pipelines."
     }}
   ],
   "projects": [
     {{
       "title": "Project Name",
-      "tech_stack": "Tech Stack",
-      "description": "Tailored project description..."
+      "tech_stack": "React, Python, FastAPI, Docker, PostgreSQL",
+      "description": "• Pipeline IA: Implemented RAG search pipeline with vector embeddings.\\n• Architecture: Built RESTful backend API with RBAC security.\\n• DevOps: Configured automated GitHub Actions CI/CD deployment."
     }}
   ],
-  "skills": ["Matched Keyword 1", "Skill 2", "Skill 3"],
+  "skills": ["Matched Skill 1", "Skill 2", "Skill 3"],
   "matched_keywords": ["Keyword 1", "Keyword 2"]
 }}
 """
