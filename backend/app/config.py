@@ -23,6 +23,10 @@ with open(_CONFIG_PATH) as _f:
 # Default model, overridable by env.
 DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", _config["default_model"])
 
+# Dynamic CORS origins configuration from env (comma-separated URLs)
+raw_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000")
+CORS_ORIGINS = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
+
 # Flat model -> {temperature, top_p} map. Preserves the contract that
 # prompt.MODEL_PARAMETERS exposed to evaluator.py / pdf.py / github.py / score.py.
 MODEL_PARAMETERS = {
