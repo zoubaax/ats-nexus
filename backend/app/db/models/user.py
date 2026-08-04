@@ -4,7 +4,7 @@ User Database Model
 
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, DateTime, Boolean
+from sqlalchemy import Column, String, DateTime, Boolean, JSON
 from sqlalchemy.orm import relationship
 from app.db.base import Base
 
@@ -18,9 +18,10 @@ class User(Base):
     hashed_password = Column(String(255), nullable=True)
     is_active = Column(Boolean, default=True)
 
-    # Preferred AI Settings
-    default_ai_provider = Column(String(50), default="gemini") # gemini, groq, nvidia, ollama
-    custom_api_key = Column(String(512), nullable=True)       # Encrypted BYOK key
+    # Preferred AI Settings & Stored Keys in Neon DB
+    default_ai_provider = Column(String(50), default="groq") # groq, nvidia, gemini, ollama
+    custom_api_key = Column(String(512), nullable=True)       # Default key
+    ai_keys = Column(JSON, default=dict)                       # Encrypted multi-provider keys
 
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))

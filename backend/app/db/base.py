@@ -67,12 +67,15 @@ async def get_db():
 
 
 async def init_db():
-    """Initializes all database tables automatically."""
+    """Initializes all database tables and ensures columns exist automatically."""
     try:
+        from sqlalchemy import text
         import app.db.models  # noqa: F401
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-        print("✅ Neon PostgreSQL tables initialized successfully!")
+            # Add missing ai_keys column to existing users table in Neon DB
+            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_keys JSON DEFAULT '{}';"))
+        print("✅ Neon PostgreSQL tables & schema updated successfully!")
     except Exception as e:
         print(f"Database initialization error (Check DATABASE_URL): {e}")
 

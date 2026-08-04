@@ -93,27 +93,36 @@ async def login_user(form_data: OAuth2PasswordRequestForm = Depends(), db: Async
     """
     Authenticate user via OAuth2 Form (username=email, password=password) and issue JWT token.
     """
-    result = await db.execute(select(User).where(User.email == form_data.username))
-    user = result.scalars().first()
+    try:
+        result = await db.execute(select(User).where(User.email == form_data.username))
+        user = result.scalars().first()
 
-    if not user or not user.hashed_password or not verify_password(form_data.password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Bearer"},
+        if not user or not user.hashed_password or not verify_password(form_data.password, user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        access_token = create_access_token(data={"sub": user.id, "email": user.email})
+
+        user_data = UserResponse(
+            id=user.id,
+            email=user.email,
+            full_name=user.full_name,
+            is_active=user.is_active,
+            default_ai_provider=user.default_ai_provider or "groq"
         )
 
-    access_token = create_access_token(data={"sub": user.id, "email": user.email})
-
-    user_data = UserResponse(
-        id=user.id,
-        email=user.email,
-        full_name=user.full_name,
-        is_active=user.is_active,
-        default_ai_provider=user.default_ai_provider or "gemini"
-    )
-
-    return TokenResponse(access_token=access_token, user=user_data)
+        return TokenResponse(access_token=access_token, user=user_data)
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Login error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Login error: {str(e)}"
+        )
 
 
 @router.get("/me", response_model=UserResponse)

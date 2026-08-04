@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Sparkles, CheckCircle2, AlertTriangle, ArrowRight, Award, Zap, BookOpen } from 'lucide-react';
 
 export const ATSChecker = ({ onBack }) => {
-  const { selectedProvider } = useAuth();
+  const { selectedProvider, getActiveKey } = useAuth();
   const [uploadedResume, setUploadedResume] = useState(null);
   const [resumeText, setResumeText] = useState('');
   const [jobDescription, setJobDescription] = useState('');
@@ -44,7 +44,8 @@ export const ATSChecker = ({ onBack }) => {
           job_description: jobDescription,
           target_role: targetRole,
         },
-        selectedProvider
+        selectedProvider,
+        getActiveKey()
       );
       setResult(evaluation);
     } catch (err) {

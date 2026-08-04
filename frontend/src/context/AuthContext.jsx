@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { login as apiLogin, register as apiRegister, getMe } from '../lib/api';
+import { login as apiLogin, register as apiRegister, getMe, getSettings, updateSettings } from '../lib/api';
 
 const AuthContext = createContext(null);
 
@@ -8,6 +8,7 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('ats_token'));
   const [loading, setLoading] = useState(true);
   const [selectedProvider, setSelectedProvider] = useState('groq');
+  const [aiKeys, setAiKeys] = useState({ groq: '', nvidia: '', gemini: '', openai: '', ollama_url: 'http://localhost:11434' });
 
   useEffect(() => {
     const initAuth = async () => {
@@ -15,8 +16,18 @@ export const AuthProvider = ({ children }) => {
         try {
           const userData = await getMe();
           setUser(userData);
-          if (userData.default_ai_provider) {
-            setSelectedProvider(userData.default_ai_provider);
+
+          // Fetch Settings & Saved Keys from Neon DB
+          try {
+            const settingsData = await getSettings();
+            if (settingsData.default_ai_provider) {
+              setSelectedProvider(settingsData.default_ai_provider);
+            }
+            if (settingsData.ai_keys) {
+              setAiKeys((prev) => ({ ...prev, ...settingsData.ai_keys }));
+            }
+          } catch (settingsErr) {
+            console.warn('Could not load user settings from DB:', settingsErr);
           }
         } catch (err) {
           console.error('Session expired or invalid token:', err);
@@ -27,6 +38,43 @@ export const AuthProvider = ({ children }) => {
     };
     initAuth();
   }, [token]);
+
+  const saveAiKeys = async (newKeys, newProvider) => {
+    const updatedKeys = { ...aiKeys, ...newKeys };
+    const providerToSave = newProvider || selectedProvider;
+    
+    setAiKeys(updatedKeys);
+    if (newProvider) setSelectedProvider(newProvider);
+
+    if (token) {
+      try {
+        await updateSettings({
+          default_ai_provider: providerToSave,
+          ai_keys: updatedKeys,
+        });
+      } catch (err) {
+        console.error('Failed to sync AI settings with Neon DB:', err);
+      }
+    }
+  };
+
+  const changeProvider = async (provider) => {
+    setSelectedProvider(provider);
+    if (token) {
+      try {
+        await updateSettings({
+          default_ai_provider: provider,
+          ai_keys: aiKeys,
+        });
+      } catch (err) {
+        console.error('Failed to update provider in Neon DB:', err);
+      }
+    }
+  };
+
+  const getActiveKey = () => {
+    return aiKeys[selectedProvider] || '';
+  };
 
   const loginUser = async (email, password) => {
     const data = await apiLogin(email, password);
@@ -58,7 +106,10 @@ export const AuthProvider = ({ children }) => {
         register: registerUser,
         logout,
         selectedProvider,
-        setSelectedProvider,
+        setSelectedProvider: changeProvider,
+        aiKeys,
+        saveAiKeys,
+        getActiveKey,
       }}
     >
       {children}
