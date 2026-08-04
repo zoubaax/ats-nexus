@@ -114,13 +114,13 @@ export const CVBuilder = () => {
     );
   }
 
-  // Format single-line contact bar
+  // Format single-line contact bar with clickable links
   const contactParts = [];
-  if (profile?.location) contactParts.push(profile.location);
-  if (profile?.phone) contactParts.push(profile.phone);
-  if (profile?.links?.github) contactParts.push(profile.links.github.replace('https://', ''));
-  if (profile?.links?.linkedin) contactParts.push(profile.links.linkedin.replace('https://', ''));
-  if (profile?.links?.portfolio) contactParts.push(profile.links.portfolio.replace('https://', ''));
+  if (profile?.location) contactParts.push({ label: profile.location, href: null });
+  if (profile?.phone) contactParts.push({ label: profile.phone, href: null });
+  if (profile?.links?.github) contactParts.push({ label: profile.links.github.replace('https://', ''), href: profile.links.github.startsWith('http') ? profile.links.github : `https://${profile.links.github}` });
+  if (profile?.links?.linkedin) contactParts.push({ label: profile.links.linkedin.replace('https://', ''), href: profile.links.linkedin.startsWith('http') ? profile.links.linkedin : `https://${profile.links.linkedin}` });
+  if (profile?.links?.portfolio) contactParts.push({ label: profile.links.portfolio.replace('https://', ''), href: profile.links.portfolio.startsWith('http') ? profile.links.portfolio : `https://${profile.links.portfolio}` });
 
   return (
     <div className="max-w-7xl mx-auto py-8 px-6 space-y-8 font-sans">
@@ -246,7 +246,11 @@ export const CVBuilder = () => {
             <div className="flex flex-wrap items-center justify-center gap-x-2 text-[10px] text-slate-600 mt-1.5 font-medium">
               {contactParts.map((part, idx) => (
                 <React.Fragment key={idx}>
-                  <span>{part}</span>
+                  {part.href ? (
+                    <a href={part.href} target="_blank" rel="noopener noreferrer" className="text-indigo-700 hover:underline">{part.label}</a>
+                  ) : (
+                    <span>{part.label}</span>
+                  )}
                   {idx < contactParts.length - 1 && <span className="text-slate-400 font-bold">•</span>}
                 </React.Fragment>
               ))}
@@ -321,7 +325,7 @@ export const CVBuilder = () => {
                         {proj.title}
                       </span>
                       {proj.demo_url && (
-                        <span className="text-[10px] font-mono text-indigo-700 font-semibold">{proj.demo_url.replace('https://', '')}</span>
+                        <a href={proj.demo_url.startsWith('http') ? proj.demo_url : `https://${proj.demo_url}`} target="_blank" rel="noopener noreferrer" className="text-[10px] font-mono text-indigo-700 font-semibold hover:underline">{proj.demo_url.replace('https://', '')}</a>
                       )}
                     </div>
                     {proj.tech_stack && (
