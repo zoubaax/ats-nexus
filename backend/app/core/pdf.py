@@ -5,30 +5,53 @@ import time
 import logging
 import pymupdf
 
-from models import (
-    JSONResume,
-    Basics,
-    Work,
-    Education,
-    Skill,
-    Project,
-    Award,
-    BasicsSection,
-    WorkSection,
-    EducationSection,
-    SkillsSection,
-    ProjectsSection,
-    AwardsSection,
-)
-from llm_utils import initialize_llm_provider, extract_json_from_response
-from pymupdf_rag import to_markdown
+try:
+    from backend.app.core.models import (
+        JSONResume,
+        Basics,
+        Work,
+        Education,
+        Skill,
+        Project,
+        Award,
+        BasicsSection,
+        WorkSection,
+        EducationSection,
+        SkillsSection,
+        ProjectsSection,
+        AwardsSection,
+    )
+    from backend.app.llm.llm_utils import initialize_llm_provider, extract_json_from_response
+    from backend.app.core.pymupdf_rag import to_markdown
+    from backend.app.llm.prompt import (
+        DEFAULT_MODEL,
+        MODEL_PARAMETERS,
+    )
+    from backend.app.core.transform import transform_parsed_data
+except ImportError:
+    from models import (
+        JSONResume,
+        Basics,
+        Work,
+        Education,
+        Skill,
+        Project,
+        Award,
+        BasicsSection,
+        WorkSection,
+        EducationSection,
+        SkillsSection,
+        ProjectsSection,
+        AwardsSection,
+    )
+    from llm_utils import initialize_llm_provider, extract_json_from_response
+    from pymupdf_rag import to_markdown
+    from prompt import (
+        DEFAULT_MODEL,
+        MODEL_PARAMETERS,
+    )
+    from transform import transform_parsed_data
 from typing import List, Optional, Dict, Any
-from prompt import (
-    DEFAULT_MODEL,
-    MODEL_PARAMETERS,
-)
-from prompts.template_manager import TemplateManager
-from transform import transform_parsed_data
 
 logger = logging.getLogger(__name__)
 

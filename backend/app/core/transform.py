@@ -1,6 +1,9 @@
 from typing import Dict, List, Optional
 import pdb
-from models import JSONResume
+try:
+    from backend.app.core.models import JSONResume
+except ImportError:
+    from models import JSONResume
 
 
 def transform_parsed_data(parsed_data: Dict) -> Dict:

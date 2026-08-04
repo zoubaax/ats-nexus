@@ -1,16 +1,19 @@
 from typing import Dict, List, Optional, Tuple, Any
 from pydantic import BaseModel, Field, field_validator
-from models import JSONResume
-from llm_utils import initialize_llm_provider, extract_json_from_response
-import logging
-import json
-import re
-
-from prompt import (
-    DEFAULT_MODEL,
-    MODEL_PARAMETERS,
-)
-from prompts.template_manager import TemplateManager
+try:
+    from backend.app.core.models import JSONResume
+    from backend.app.llm.llm_utils import initialize_llm_provider, extract_json_from_response
+    from backend.app.llm.prompt import (
+        DEFAULT_MODEL,
+        MODEL_PARAMETERS,
+    )
+except ImportError:
+    from models import JSONResume
+    from llm_utils import initialize_llm_provider, extract_json_from_response
+    from prompt import (
+        DEFAULT_MODEL,
+        MODEL_PARAMETERS,
+    )
 
 logger = logging.getLogger(__name__)
 

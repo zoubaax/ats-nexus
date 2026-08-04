@@ -13,7 +13,9 @@ DEVELOPMENT_MODE = True
 # Load .env before any os.getenv below, so values apply regardless of import order.
 load_dotenv(Path(__file__).parent / ".env")
 
-_CONFIG_PATH = Path(__file__).parent / "providers.json"
+_CONFIG_PATH = Path(__file__).parent / "llm" / "providers.json"
+if not _CONFIG_PATH.exists():
+    _CONFIG_PATH = Path(__file__).parent / "providers.json"
 
 with open(_CONFIG_PATH) as _f:
     _config = json.load(_f)
