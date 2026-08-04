@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ResumeUploader } from './ResumeUploader';
 import { evaluateResume } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import { Sparkles, CheckCircle2, AlertTriangle, ArrowRight, Award, Zap, BookOpen } from 'lucide-react';
 
-export const ATSChecker = ({ onBack }) => {
+export const ATSChecker = () => {
+  const navigate = useNavigate();
   const { selectedProvider, getActiveKey } = useAuth();
   const [uploadedResume, setUploadedResume] = useState(null);
   const [resumeText, setResumeText] = useState('');
@@ -62,7 +64,7 @@ export const ATSChecker = ({ onBack }) => {
       <div className="flex items-center justify-between">
         <div>
           <button
-            onClick={onBack}
+            onClick={() => navigate('/dashboard')}
             className="text-xs text-indigo-400 hover:underline mb-2 cursor-pointer font-medium flex items-center gap-1"
           >
             ← Back to Dashboard

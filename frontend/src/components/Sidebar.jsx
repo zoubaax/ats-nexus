@@ -1,16 +1,17 @@
 import React from 'react';
+import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Sparkles, LayoutDashboard, Search, FileText, UserCheck, Settings, LogOut, ChevronRight } from 'lucide-react';
 
-export const Sidebar = ({ activeTab, setActiveTab }) => {
+export const Sidebar = () => {
   const { user, logout } = useAuth();
 
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'checker', label: 'ATS CV Checker', icon: Search, badge: 'AI' },
-    { id: 'builder', label: 'ATS CV Builder', icon: FileText },
-    { id: 'profile', label: 'Master Experience Bank', icon: UserCheck },
-    { id: 'settings', label: 'AI Settings & BYOK', icon: Settings },
+    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/checker', label: 'ATS CV Checker', icon: Search, badge: 'AI' },
+    { path: '/builder', label: 'ATS CV Builder', icon: FileText },
+    { path: '/profile', label: 'Master Experience Bank', icon: UserCheck },
+    { path: '/settings', label: 'AI Settings & BYOK', icon: Settings },
   ];
 
   return (
@@ -34,31 +35,36 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
           </span>
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = activeTab === item.id;
             return (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                  isActive
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/25'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
-                }`}
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={({ isActive }) =>
+                  `w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/25'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                  }`
+                }
               >
-                <div className="flex items-center gap-3">
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                  <span>{item.label}</span>
-                </div>
-                {item.badge ? (
-                  <span className={`px-1.5 py-0.5 text-[9px] rounded-md font-bold uppercase ${
-                    isActive ? 'bg-white/20 text-white' : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
-                  }`}>
-                    {item.badge}
-                  </span>
-                ) : isActive ? (
-                  <ChevronRight className="w-3.5 h-3.5 text-white/70" />
-                ) : null}
-              </button>
+                {({ isActive }) => (
+                  <>
+                    <div className="flex items-center gap-3">
+                      <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                      <span>{item.label}</span>
+                    </div>
+                    {item.badge ? (
+                      <span className={`px-1.5 py-0.5 text-[9px] rounded-md font-bold uppercase ${
+                        isActive ? 'bg-white/20 text-white' : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20'
+                      }`}>
+                        {item.badge}
+                      </span>
+                    ) : isActive ? (
+                      <ChevronRight className="w-3.5 h-3.5 text-white/70" />
+                    ) : null}
+                  </>
+                )}
+              </NavLink>
             );
           })}
         </div>
