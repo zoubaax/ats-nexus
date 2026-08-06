@@ -68,13 +68,15 @@ async def evaluate_resume(
         )
 
     provider = x_ai_provider or current_user.default_ai_provider or "groq"
+    api_key = x_ai_key or (current_user.ai_keys or {}).get(provider, "")
 
     # Evaluate ATS score and keyword match
     evaluation_data = compute_ats_score(
         resume_text=resume_text,
         job_description=payload.job_description,
         target_role=payload.target_role or "Software Engineer",
-        provider=provider
+        provider=provider,
+        api_key=api_key
     )
 
     # Save record if linked to a saved resume

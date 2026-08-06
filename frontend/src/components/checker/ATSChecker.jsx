@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ResumeUploader } from './ResumeUploader';
-import { evaluateResume } from '../../lib/api';
+import { evaluateResume, getProfile } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
-import { Sparkles, CheckCircle2, AlertTriangle, ArrowRight, Award, Zap, BookOpen } from 'lucide-react';
+import { Sparkles, CheckCircle2, AlertTriangle, ArrowRight, Award, Zap, UserCheck, FileText } from 'lucide-react';
 
 export const ATSChecker = () => {
   const navigate = useNavigate();
@@ -13,13 +13,51 @@ export const ATSChecker = () => {
   const [jobDescription, setJobDescription] = useState('');
   const [targetRole, setTargetRole] = useState('Software Engineer');
   const [loading, setLoading] = useState(false);
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [usingMasterProfile, setUsingMasterProfile] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
 
   const handleUploadSuccess = (resumeData) => {
     setUploadedResume(resumeData);
+    setUsingMasterProfile(false);
     if (resumeData.raw_markdown) {
       setResumeText(resumeData.raw_markdown);
+    }
+  };
+
+  const handleUseMasterProfile = async () => {
+    setLoadingProfile(true);
+    setError(null);
+    try {
+      const prof = await getProfile();
+      if (!prof || (!prof.summary && (!prof.work_history || prof.work_history.length === 0))) {
+        setError('Master Profile is empty. Please fill your profile first in Master Experience Bank.');
+        return;
+      }
+
+      // Format Master Profile details into text for ATS evaluation
+      let textParts = [];
+      if (prof.headline) textParts.push(`Headline: ${prof.headline}`);
+      if (prof.summary) textParts.push(`Summary:\n${prof.summary}`);
+      if (prof.work_history && prof.work_history.length > 0) {
+        textParts.push("Work Experience:\n" + prof.work_history.map(w => `${w.title} at ${w.company}\n${w.description}`).join("\n\n"));
+      }
+      if (prof.projects && prof.projects.length > 0) {
+        textParts.push("Projects:\n" + prof.projects.map(p => `${p.title} (${p.tech_stack || ''})\n${p.description}`).join("\n\n"));
+      }
+      if (prof.skills && prof.skills.length > 0) {
+        textParts.push("Skills:\n" + prof.skills.join(", "));
+      }
+
+      setResumeText(textParts.join("\n\n"));
+      setUsingMasterProfile(true);
+      setUploadedResume(null);
+    } catch (err) {
+      console.error('Failed to load master profile for evaluation:', err);
+      setError('Failed to fetch Master Profile from Neon DB.');
+    } finally {
+      setLoadingProfile(false);
     }
   };
 
@@ -31,7 +69,7 @@ export const ATSChecker = () => {
     }
 
     if (!uploadedResume && !resumeText.trim()) {
-      setError('Please upload a PDF resume or paste raw resume text.');
+      setError('Please upload a PDF resume or click "Use My Master Profile from Neon DB".');
       return;
     }
 
@@ -83,8 +121,44 @@ export const ATSChecker = () => {
         {/* Left Column: Upload & Job Description Form */}
         <div className="md:col-span-6 space-y-6">
           <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-5">
-            <h3 className="text-sm font-bold text-white">1. Select or Upload Resume</h3>
-            <ResumeUploader onUploadSuccess={handleUploadSuccess} />
+            
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-white">1. Select or Upload Resume</h3>
+              <button
+                onClick={handleUseMasterProfile}
+                disabled={loadingProfile}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  usingMasterProfile
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                    : 'bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30'
+                }`}
+              >
+                {loadingProfile ? (
+                  <div className="w-3 h-3 border-2 border-indigo-400/30 border-t-indigo-400 rounded-full animate-spin" />
+                ) : (
+                  <UserCheck className="w-3.5 h-3.5" />
+                )}
+                <span>{usingMasterProfile ? '✓ Using Master Profile' : '⚡ Use Master Profile'}</span>
+              </button>
+            </div>
+
+            {usingMasterProfile && (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs rounded-xl flex items-center justify-between">
+                <span className="flex items-center gap-1.5 font-medium">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Saved Neon DB Profile active for evaluation
+                </span>
+                <button
+                  onClick={() => setUsingMasterProfile(false)}
+                  className="text-[10px] text-slate-400 hover:text-white underline cursor-pointer"
+                >
+                  Clear
+                </button>
+              </div>
+            )}
+
+            {!usingMasterProfile && (
+              <ResumeUploader onUploadSuccess={handleUploadSuccess} />
+            )}
 
             <div className="pt-2">
               <label className="block text-xs font-medium text-slate-300 mb-1.5">Target Job Role</label>
@@ -93,7 +167,7 @@ export const ATSChecker = () => {
                 value={targetRole}
                 onChange={(e) => setTargetRole(e.target.value)}
                 placeholder="e.g. Full Stack Developer, DevOps Engineer"
-                className="w-full bg-slate-950/80 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 outline-none focus:border-indigo-500"
+                className="w-full bg-slate-950/80 border border-slate-800 text-slate-200 text-xs rounded-xl px-3.5 py-2.5 outline-none focus:border-indigo-500 font-semibold"
               />
             </div>
 
@@ -105,8 +179,8 @@ export const ATSChecker = () => {
                 rows={6}
                 value={jobDescription}
                 onChange={(e) => setJobDescription(e.target.value)}
-                placeholder="Paste the target job description requirements, responsibilities, and skills here..."
-                className="w-full bg-slate-950/80 border border-slate-800 text-slate-200 text-xs rounded-xl p-3.5 outline-none focus:border-indigo-500 resize-none"
+                placeholder="Paste target job description requirements, responsibilities, and skills here..."
+                className="w-full bg-slate-950/80 border border-slate-800 text-slate-200 text-xs rounded-xl p-3.5 outline-none focus:border-indigo-500 resize-none font-mono"
               />
             </div>
 
@@ -123,11 +197,14 @@ export const ATSChecker = () => {
               className="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold text-xs rounded-xl shadow-lg shadow-indigo-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               {loading ? (
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Evaluating ATS Match with AI ({selectedProvider.toUpperCase()})...</span>
+                </>
               ) : (
                 <>
                   <span>Evaluate Resume Match</span>
-                  <Zap className="w-4 h-4" />
+                  <Zap className="w-4 h-4 text-amber-300" />
                 </>
               )}
             </button>
@@ -179,13 +256,15 @@ export const ATSChecker = () => {
                 {result.missing_keywords && result.missing_keywords.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     {result.missing_keywords.map((kw, idx) => (
-                      <span key={idx} className="px-2.5 py-1 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-lg font-medium">
+                      <span key={idx} className="px-2.5 py-1 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-lg font-medium font-mono">
                         + {kw}
                       </span>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-emerald-400">All key hard skills matched!</p>
+                  <p className="text-xs text-emerald-400 font-medium flex items-center gap-1">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" /> All key hard skills matched!
+                  </p>
                 )}
               </div>
 
@@ -212,7 +291,7 @@ export const ATSChecker = () => {
               </div>
               <h4 className="text-sm font-bold text-slate-200 mb-1">No Evaluation Result Yet</h4>
               <p className="text-xs text-slate-400 max-w-xs leading-relaxed">
-                Upload your PDF resume on the left, paste a job description, and click <strong>Evaluate Resume Match</strong> to see your scores.
+                Click <strong>⚡ Use Master Profile</strong> or upload a PDF resume, paste a job description, and click <strong>Evaluate Resume Match</strong>.
               </p>
             </div>
           )}
