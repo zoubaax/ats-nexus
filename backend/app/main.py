@@ -36,6 +36,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from fastapi.staticfiles import StaticFiles
+from app.services.resume_service import UPLOAD_DIR
+
+# Mount static file directory for hosted PDFs & uploads
+app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
+
 # Mount API v1 Routers
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(checker_router, prefix="/api/v1")

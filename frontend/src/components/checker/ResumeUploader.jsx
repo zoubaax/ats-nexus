@@ -10,7 +10,7 @@ export const ResumeUploader = ({ onUploadSuccess }) => {
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
   const handleFile = async (selectedFile) => {
-    if (!selectedFile || !selectedFile.name.toLowerCase().endswith('.pdf')) {
+    if (!selectedFile || !selectedFile.name.toLowerCase().endsWith('.pdf')) {
       setError('Please upload a valid PDF resume file.');
       return;
     }

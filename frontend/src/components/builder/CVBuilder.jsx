@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getProfile, optimizeBulletPoint, tailorProfileForJD } from '../../lib/api';
+import { getProfile, optimizeBulletPoint, tailorProfileForJD, saveCVToHost, getResumes, deleteResume } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import {
   Sparkles,
@@ -7,11 +7,16 @@ import {
   FileText,
   Wand2,
   Check,
-  CheckCircle2
+  CheckCircle2,
+  Save,
+  Folder,
+  ExternalLink,
+  Trash2,
+  Download
 } from 'lucide-react';
 
 export const CVBuilder = () => {
-  const { selectedProvider, getActiveKey } = useAuth();
+  const { selectedProvider, getActiveKey, user } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -20,14 +25,23 @@ export const CVBuilder = () => {
   const [jobDescription, setJobDescription] = useState('');
   const [matchedKeywords, setMatchedKeywords] = useState([]);
 
+  // Server PDF Storage State
+  const [savingHost, setSavingHost] = useState(false);
+  const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
+  const [savedResumes, setSavedResumes] = useState([]);
+  const [showSavedModal, setShowSavedModal] = useState(false);
+
   // AI Bullet Rewriter Modal State
   const [rewritingIndex, setRewritingIndex] = useState(null); // { workIdx, bulletIdx }
   const [originalBullet, setOriginalBullet] = useState('');
   const [variations, setVariations] = useState([]);
   const [optimizing, setOptimizing] = useState(false);
 
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
   useEffect(() => {
     loadProfile();
+    loadSavedResumesList();
   }, []);
 
   const loadProfile = async () => {
@@ -38,6 +52,15 @@ export const CVBuilder = () => {
       console.error('Failed to load profile for CV Builder:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadSavedResumesList = async () => {
+    try {
+      const list = await getResumes();
+      setSavedResumes(list || []);
+    } catch (err) {
+      console.error('Failed to load saved resumes:', err);
     }
   };
 
@@ -64,6 +87,35 @@ export const CVBuilder = () => {
       alert('Failed to generate tailored CV. Please check your AI API key in Settings.');
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleSaveCVToHostServer = async () => {
+    if (!profile) return;
+    setSavingHost(true);
+    setSaveSuccessMsg('');
+
+    try {
+      const titleName = `${targetRole || 'Tailored'} Resume (${new Date().toLocaleDateString()})`;
+      const res = await saveCVToHost(titleName, targetRole, profile);
+      setSaveSuccessMsg('CV & PDF saved directly to Server Host & Neon DB!');
+      await loadSavedResumesList();
+      setTimeout(() => setSaveSuccessMsg(''), 4000);
+    } catch (err) {
+      console.error('Failed to save CV to host:', err);
+      alert('Failed to save CV to server host.');
+    } finally {
+      setSavingHost(false);
+    }
+  };
+
+  const handleDeleteSavedCV = async (resumeId) => {
+    if (!window.confirm('Are you sure you want to delete this stored CV from server?')) return;
+    try {
+      await deleteResume(resumeId);
+      await loadSavedResumesList();
+    } catch (err) {
+      console.error('Failed to delete resume:', err);
     }
   };
 
@@ -136,26 +188,34 @@ export const CVBuilder = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* Template Switcher */}
-          <div className="flex bg-slate-900 p-1 rounded-xl border border-slate-800">
-            <button
-              onClick={() => setTemplate('modern')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer ${
-                template === 'modern' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              Modern Tech (A4)
-            </button>
-            <button
-              onClick={() => setTemplate('executive')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer ${
-                template === 'executive' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              Executive Clean (A4)
-            </button>
-          </div>
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Saved Server Resumes Drawer Trigger */}
+          <button
+            onClick={() => setShowSavedModal(true)}
+            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl border border-slate-700 transition-all flex items-center gap-2 cursor-pointer"
+          >
+            <Folder className="w-4 h-4 text-indigo-400" />
+            <span>Saved Resumes ({savedResumes.length})</span>
+          </button>
+
+          {/* Save CV to Host Server Button */}
+          <button
+            onClick={handleSaveCVToHostServer}
+            disabled={savingHost}
+            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-indigo-600/20 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+          >
+            {savingHost ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span>Saving to Server...</span>
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                <span>Save CV to Server</span>
+              </>
+            )}
+          </button>
 
           {/* Export PDF Button */}
           <button
@@ -167,6 +227,13 @@ export const CVBuilder = () => {
           </button>
         </div>
       </div>
+
+      {saveSuccessMsg && (
+        <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs rounded-xl flex items-center gap-2 animate-fadeIn print:hidden">
+          <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+          <span>{saveSuccessMsg}</span>
+        </div>
+      )}
 
       {/* Target JD & AI Tailoring Input Card */}
       <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 space-y-4 print:hidden">
@@ -397,6 +464,72 @@ export const CVBuilder = () => {
 
         </div>
       </div>
+
+      {/* Saved Resumes Server Drawer Modal */}
+      {showSavedModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 print:hidden">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 space-y-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Folder className="w-4 h-4 text-indigo-400" />
+                <span>Saved Server CVs & PDFs (Host Storage)</span>
+              </h3>
+              <button
+                onClick={() => setShowSavedModal(false)}
+                className="text-slate-400 hover:text-white text-xs cursor-pointer"
+              >
+                ✕ Close
+              </button>
+            </div>
+
+            {savedResumes.length === 0 ? (
+              <div className="py-8 text-center text-slate-400 text-xs">
+                No saved resumes stored on server host yet. Click "Save CV to Server" to store your first resume!
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                {savedResumes.map((item) => {
+                  const hostPdfUrl = `${API_BASE_URL}/api/v1/resumes/${item.id}/pdf`;
+                  return (
+                    <div
+                      key={item.id}
+                      className="p-3.5 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between gap-3 text-xs"
+                    >
+                      <div>
+                        <h4 className="font-bold text-white text-xs">{item.title}</h4>
+                        <p className="text-[10px] text-slate-400 mt-0.5">
+                          Saved: {new Date(item.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {/* View PDF */}
+                        <a
+                          href={hostPdfUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2.5 py-1.5 bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-600/30 text-[11px] font-semibold rounded-lg flex items-center gap-1 transition-all"
+                        >
+                          <ExternalLink className="w-3 h-3" /> View Hosted PDF
+                        </a>
+
+                        {/* Delete */}
+                        <button
+                          onClick={() => handleDeleteSavedCV(item.id)}
+                          className="p-1.5 text-red-400 hover:bg-red-500/10 border border-red-500/20 rounded-lg cursor-pointer transition-all"
+                          title="Delete CV"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* AI Rewrite Modal */}
       {rewritingIndex && (
