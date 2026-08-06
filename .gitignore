@@ -1,4 +1,7 @@
-# Project Specific Files
+# Project Specific Files & PDF Storage
+*.pdf
+backend/uploads/
+uploads/
 **/*.pyc
 resume/*.pdf
 run/*.pdf

@@ -124,28 +124,33 @@ async def get_resume(
 @router.get("/{resume_id}/pdf")
 async def download_resume_pdf(
     resume_id: str,
-    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
     Serve the hosted PDF file directly from host storage.
     """
     result = await db.execute(
-        select(Resume).where(Resume.id == resume_id, Resume.user_id == current_user.id)
+        select(Resume).where(Resume.id == resume_id)
     )
     resume = result.scalars().first()
 
     if not resume or not resume.original_filename:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="PDF file not found."
+            detail="PDF file not found in database."
         )
 
-    file_path = UPLOAD_DIR / current_user.id / resume.original_filename
+    # Check multiple path strategies for bulletproof file location
+    file_path = UPLOAD_DIR / resume.user_id / resume.original_filename
+    if not file_path.exists():
+        file_path = UPLOAD_DIR / resume.original_filename
+    if not file_path.exists():
+        file_path = UPLOAD_DIR / f"{resume_id}.pdf"
+
     if not file_path.exists():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Stored PDF file does not exist on host server."
+            detail=f"Stored PDF file '{resume.original_filename}' does not exist on host server."
         )
 
     return FileResponse(

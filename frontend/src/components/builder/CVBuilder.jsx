@@ -1,5 +1,6 @@
+import html2pdf from 'html2pdf.js';
 import React, { useState, useEffect } from 'react';
-import { getProfile, optimizeBulletPoint, tailorProfileForJD, saveCVToHost, getResumes, deleteResume } from '../../lib/api';
+import { getProfile, optimizeBulletPoint, tailorProfileForJD, saveRenderedCVPDF, saveCVToHost, getResumes, deleteResume } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
 import {
   Sparkles,
@@ -97,7 +98,47 @@ export const CVBuilder = () => {
 
     try {
       const titleName = `${targetRole || 'Tailored'} Resume (${new Date().toLocaleDateString()})`;
-      const res = await saveCVToHost(titleName, targetRole, profile);
+      let res;
+
+      try {
+        const element = document.getElementById('cv-print-area');
+        const opt = {
+          margin: 0,
+          filename: 'resume.pdf',
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            onclone: (clonedDoc) => {
+              const el = clonedDoc.getElementById('cv-print-area');
+              if (el) {
+                el.querySelectorAll('button, .print\\:hidden').forEach(b => b.remove());
+                const allNodes = [el, ...el.querySelectorAll('*')];
+                allNodes.forEach((node) => {
+                  const style = window.getComputedStyle(node);
+                  ['color', 'backgroundColor', 'borderColor'].forEach((prop) => {
+                    const val = style[prop];
+                    if (val && val.includes('oklch')) {
+                      if (prop === 'backgroundColor') node.style[prop] = '#ffffff';
+                      else if (prop === 'borderColor') node.style[prop] = '#94a3b8';
+                      else node.style[prop] = '#0f172a';
+                    }
+                  });
+                });
+              }
+            }
+          },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
+        const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
+        res = await saveRenderedCVPDF(titleName, targetRole, profile, pdfBlob);
+      } catch (clientPdfErr) {
+        console.warn('Client PDF capture fell back to PyMuPDF backend generator:', clientPdfErr);
+        res = await saveCVToHost(titleName, targetRole, profile);
+      }
+
       setSaveSuccessMsg('CV & PDF saved directly to Server Host & Neon DB!');
       await loadSavedResumesList();
       setTimeout(() => setSaveSuccessMsg(''), 4000);
@@ -174,6 +215,19 @@ export const CVBuilder = () => {
   if (profile?.links?.linkedin) contactParts.push({ label: profile.links.linkedin.replace('https://', ''), href: profile.links.linkedin.startsWith('http') ? profile.links.linkedin : `https://${profile.links.linkedin}` });
   if (profile?.links?.portfolio) contactParts.push({ label: profile.links.portfolio.replace('https://', ''), href: profile.links.portfolio.startsWith('http') ? profile.links.portfolio : `https://${profile.links.portfolio}` });
 
+  const handleOpenSavedModal = async (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setShowSavedModal(true);
+    try {
+      await loadSavedResumesList();
+    } catch (err) {
+      console.error('Error refreshing saved resumes list:', err);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto py-8 px-6 space-y-8 font-sans">
       
@@ -191,8 +245,9 @@ export const CVBuilder = () => {
         <div className="flex flex-wrap items-center gap-3">
           {/* Saved Server Resumes Drawer Trigger */}
           <button
-            onClick={() => setShowSavedModal(true)}
-            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl border border-slate-700 transition-all flex items-center gap-2 cursor-pointer"
+            type="button"
+            onClick={handleOpenSavedModal}
+            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl border border-slate-700 transition-all flex items-center gap-2 cursor-pointer relative z-20"
           >
             <Folder className="w-4 h-4 text-indigo-400" />
             <span>Saved Resumes ({savedResumes.length})</span>
@@ -467,7 +522,7 @@ export const CVBuilder = () => {
 
       {/* Saved Resumes Server Drawer Modal */}
       {showSavedModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 print:hidden">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-[100] print:hidden">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 space-y-6 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">

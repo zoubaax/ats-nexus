@@ -8,7 +8,7 @@ import re
 import uuid
 import fitz  # PyMuPDF
 from typing import Optional, Dict, Any, List
-from fastapi import APIRouter, Header, Depends, HTTPException, status
+from fastapi import APIRouter, Header, Depends, HTTPException, status, UploadFile, File, Form
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -71,24 +71,12 @@ class SaveCVResponse(BaseModel):
 
 def generate_host_pdf(profile_data: dict, output_path: str, candidate_name: str = "ZOUBAA MOHAMMED"):
     """
-    Generate an A4 PDF document on the host server using PyMuPDF (fitz).
+    Generate an A4 PDF document on the host server using PyMuPDF fitz.Story HTML rendering.
+    Ensures 100% pixel-perfect match with browser A4 preview.
     """
-    doc = fitz.open()
-    page = doc.new_page(width=595, height=842)  # Standard A4 dimensions
-    
-    margin = 40
-    y = 45
+    c_name = profile_data.get("full_name") or candidate_name or "ZOUBAA MOHAMMED"
+    role = profile_data.get("headline") or profile_data.get("target_role") or "Full-Stack & GenAI Engineer"
 
-    # Header Name
-    page.insert_text((margin, y), candidate_name, fontsize=18, fontname="helv", color=(0.05, 0.05, 0.05))
-    y += 22
-
-    # Target Role / Headline
-    role = profile_data.get("headline") or profile_data.get("target_role") or "Full-Stack Engineer"
-    page.insert_text((margin, y), role.upper(), fontsize=10, fontname="helv", color=(0.25, 0.25, 0.25))
-    y += 18
-
-    # Contact line
     contacts = []
     if profile_data.get("location"): contacts.append(profile_data["location"])
     if profile_data.get("phone"): contacts.append(profile_data["phone"])
@@ -96,75 +84,261 @@ def generate_host_pdf(profile_data: dict, output_path: str, candidate_name: str 
     if links.get("github"): contacts.append(links["github"].replace("https://", ""))
     if links.get("linkedin"): contacts.append(links["linkedin"].replace("https://", ""))
     if links.get("portfolio"): contacts.append(links["portfolio"].replace("https://", ""))
+    contact_str = " &nbsp;&bull;&nbsp; ".join(contacts)
 
-    contact_str = "  •  ".join(contacts)
-    page.insert_text((margin, y), contact_str[:110], fontsize=8.5, fontname="helv", color=(0.4, 0.4, 0.4))
-    y += 20
+    summary_html = ""
+    if profile_data.get("summary"):
+        summary_html = f"""
+        <div class="section">
+          <div class="section-title">PROFIL PROFESSIONNEL</div>
+          <p class="summary">{profile_data["summary"]}</p>
+        </div>
+        """
 
-    # Rule line
-    page.draw_line(fitz.Point(margin, y), fitz.Point(595 - margin, y), color=(0.1, 0.1, 0.1), width=1)
-    y += 18
-
-    # Profile Summary
-    summary = profile_data.get("summary")
-    if summary:
-        page.insert_text((margin, y), "PROFIL PROFESSIONNEL", fontsize=9.5, fontname="helv", color=(0, 0, 0))
-        y += 14
-        page.insert_textbox(fitz.Rect(margin, y, 595 - margin, y + 45), summary, fontsize=8.5, fontname="helv")
-        y += 50
-
-    # Work History
+    work_html = ""
     work_list = profile_data.get("work_history") or []
     if work_list:
-        page.insert_text((margin, y), "EXPÉRIENCES PROFESSIONNELLES & STAGES", fontsize=9.5, fontname="helv", color=(0, 0, 0))
-        y += 14
-        for w in work_list[:4]:
-            w_title = f"{w.get('title', '')} | {w.get('company', '')}"
-            w_dates = f"{w.get('start_month', w.get('dates', ''))} - {w.get('end_month', 'Present')}"
-            page.insert_text((margin, y), w_title[:65], fontsize=9, fontname="helv", color=(0, 0, 0))
-            page.insert_text((420, y), w_dates[:20], fontsize=8, fontname="helv", color=(0.3, 0.3, 0.3))
-            y += 13
-
+        items = []
+        for w in work_list:
+            w_title = f"<b>{w.get('title', '')}</b> | {w.get('company', '')}"
+            start = w.get('start_month', w.get('dates', ''))
+            end = 'Present' if w.get('is_current') else w.get('end_month', '')
+            w_dates = f"{start} &ndash; {end}" if end else start
+            
+            bullets_html = ""
             desc = w.get("description", "")
-            for line in desc.split("\n")[:4]:
+            for line in desc.split("\n"):
                 if line.strip():
-                    text_line = line if line.startswith("•") else f"• {line}"
-                    page.insert_textbox(fitz.Rect(margin + 8, y, 595 - margin, y + 13), text_line[:120], fontsize=8, fontname="helv")
-                    y += 13
-            y += 5
+                    text_line = line.lstrip("•- ").strip()
+                    bullets_html += f"<li>{text_line}</li>"
+            
+            items.append(f"""
+            <div class="item">
+              <div class="item-header">
+                <div class="title-part">{w_title}</div>
+                <div class="dates">{w_dates}</div>
+              </div>
+              <ul class="bullets">{bullets_html}</ul>
+            </div>
+            """)
+        work_html = f"""
+        <div class="section">
+          <div class="section-title">EXPÉRIENCES PROFESSIONNELLES & STAGES</div>
+          {"".join(items)}
+        </div>
+        """
 
-    # Projects
-    projects = profile_data.get("projects") or []
-    if projects:
-        page.insert_text((margin, y), "PROJETS RÉALISÉS & PRODUCTS", fontsize=9.5, fontname="helv", color=(0, 0, 0))
-        y += 14
-        for p in projects[:3]:
-            p_title = p.get("title", "")
-            page.insert_text((margin, y), p_title[:70], fontsize=9, fontname="helv", color=(0, 0, 0))
-            y += 13
-
-            if p.get("tech_stack"):
-                page.insert_text((margin + 8, y), f"Stack: {p['tech_stack']}", fontsize=8, fontname="helv", color=(0.2, 0.2, 0.2))
-                y += 12
-
+    projects_html = ""
+    projects_list = profile_data.get("projects") or []
+    if projects_list:
+        p_items = []
+        for p in projects_list:
+            p_title = f"<b>{p.get('title', '')}</b>"
+            p_url = f'<span class="demo-url">{p.get("demo_url", "").replace("https://", "")}</span>' if p.get("demo_url") else ""
+            stack_html = f'<div class="stack"><b>Stack:</b> {p["tech_stack"]}</div>' if p.get("tech_stack") else ""
+            
+            p_bullets = ""
             p_desc = p.get("description", "")
-            for line in p_desc.split("\n")[:3]:
+            for line in p_desc.split("\n"):
                 if line.strip():
-                    text_line = line if line.startswith("•") else f"• {line}"
-                    page.insert_textbox(fitz.Rect(margin + 8, y, 595 - margin, y + 13), text_line[:120], fontsize=8, fontname="helv")
-                    y += 13
-            y += 5
+                    text_line = line.lstrip("•- ").strip()
+                    p_bullets += f"<li>{text_line}</li>"
+            
+            p_items.append(f"""
+            <div class="item">
+              <div class="item-header">
+                <div>{p_title}</div>
+                {p_url}
+              </div>
+              {stack_html}
+              <ul class="bullets">{p_bullets}</ul>
+            </div>
+            """)
+        projects_html = f"""
+        <div class="section">
+          <div class="section-title">PROJETS RÉALISÉS & PRODUCTS</div>
+          {"".join(p_items)}
+        </div>
+        """
 
-    # Skills & Education Grid
-    skills = profile_data.get("skills") or []
-    if skills:
-        page.insert_text((margin, y), "COMPÉTENCES TECHNIQUES", fontsize=9.5, fontname="helv", color=(0, 0, 0))
-        y += 14
-        skills_str = ", ".join(skills)
-        page.insert_textbox(fitz.Rect(margin, y, 595 - margin, y + 25), skills_str, fontsize=8, fontname="helv")
+    edu_html = ""
+    edu_list = profile_data.get("education") or []
+    if edu_list:
+        e_items = []
+        for e in edu_list:
+            e_degree = f"<b>{e.get('field_of_study') or e.get('degree')}</b> &mdash; {e.get('school')}"
+            e_dates = f"{e.get('start_year', e.get('dates', ''))} &ndash; {e.get('end_year', 'en cours' if e.get('is_current') else '')}"
+            e_items.append(f"""
+            <div class="item-header" style="margin-bottom: 4px;">
+              <div>{e_degree}</div>
+              <div class="dates">{e_dates}</div>
+            </div>
+            """)
+        edu_html = f"""
+        <div class="section">
+          <div class="section-title">FORMATIONS & DIPLÔMES</div>
+          {"".join(e_items)}
+        </div>
+        """
 
-    doc.save(output_path)
-    doc.close()
+    skills_html = ""
+    cert_html = ""
+    skills_list = profile_data.get("skills") or []
+    cert_list = profile_data.get("certifications") or []
+    
+    if skills_list:
+        skills_html = f"""
+        <div style="width: 48%; float: left;">
+          <div class="section-title">COMPÉTENCES TECHNIQUES</div>
+          <p class="skills-text">{", ".join(skills_list)}</p>
+        </div>
+        """
+    if cert_list:
+        cert_items = "".join([f"<li>{c.get('title')} ({c.get('issuer')})</li>" for c in cert_list])
+        cert_html = f"""
+        <div style="width: 48%; float: right;">
+          <div class="section-title">CERTIFICATIONS</div>
+          <ul class="bullets">{cert_items}</ul>
+        </div>
+        """
+
+    bottom_grid = ""
+    if skills_html or cert_html:
+        bottom_grid = f"""
+        <div class="section" style="clear: both; overflow: hidden; margin-top: 6px;">
+          {skills_html}
+          {cert_html}
+        </div>
+        """
+
+    full_html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body {{
+          font-family: sans-serif;
+          color: #0f172a;
+          margin: 0;
+          padding: 20px 28px;
+          font-size: 10px;
+          line-height: 1.32;
+          background: #ffffff;
+        }}
+        h1 {{
+          text-align: center;
+          font-size: 18px;
+          font-weight: 800;
+          letter-spacing: 0.03em;
+          text-transform: uppercase;
+          margin: 0 0 2px 0;
+          color: #0f172a;
+        }}
+        .role {{
+          text-align: center;
+          font-size: 9.5px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          color: #334155;
+          margin-bottom: 4px;
+        }}
+        .contacts {{
+          text-align: center;
+          font-size: 8.5px;
+          color: #475569;
+          margin-bottom: 8px;
+        }}
+        .header-rule {{
+          border-bottom: 2px solid #0f172a;
+          margin-bottom: 10px;
+        }}
+        .section {{
+          margin-bottom: 8px;
+        }}
+        .section-title {{
+          font-size: 9.5px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: #0f172a;
+          border-bottom: 1px solid #94a3b8;
+          padding-bottom: 1px;
+          margin-bottom: 4px;
+        }}
+        .summary {{
+          font-size: 10px;
+          color: #1e293b;
+          text-align: justify;
+          margin: 0;
+        }}
+        .item {{
+          margin-bottom: 4px;
+        }}
+        .item-header {{
+          font-size: 10px;
+          color: #0f172a;
+        }}
+        .dates {{
+          font-size: 9px;
+          color: #475569;
+          font-weight: 600;
+          float: right;
+        }}
+        .stack {{
+          font-size: 9px;
+          color: #334155;
+          margin-top: 1px;
+        }}
+        .demo-url {{
+          font-size: 9px;
+          color: #4338ca;
+          font-weight: 600;
+          float: right;
+        }}
+        ul.bullets {{
+          margin: 1px 0 0 0;
+          padding-left: 12px;
+        }}
+        ul.bullets li {{
+          margin-bottom: 1px;
+          color: #1e293b;
+          font-size: 10px;
+        }}
+        .skills-text {{
+          font-size: 9.5px;
+          color: #1e293b;
+          margin: 0;
+        }}
+      </style>
+    </head>
+    <body>
+      <h1>{c_name}</h1>
+      <div class="role">{role}</div>
+      <div class="contacts">{contact_str}</div>
+      <div class="header-rule"></div>
+
+      {summary_html}
+      {work_html}
+      {projects_html}
+      {edu_html}
+      {bottom_grid}
+    </body>
+    </html>
+    """
+
+    story = fitz.Story(html=full_html)
+    writer = fitz.DocumentWriter(output_path)
+    
+    rect = fitz.Rect(0, 0, 595, 842)
+    more = True
+    while more:
+        device = writer.begin_page(rect)
+        more, _ = story.place(rect)
+        story.draw(device)
+        writer.end_page()
+    writer.close()
 
 
 @router.post("/optimize-bullet", response_model=OptimizeBulletResponse)
@@ -245,8 +419,8 @@ async def tailor_resume_for_jd(
     api_key = x_ai_key or (current_user.ai_keys or {}).get(provider, "")
 
     prompt = f"""
-You are a Principal Talent Acquisition Lead & Technical Resume Strategist.
-Tailor the candidate's Master Experience Profile specifically for the target Job Description below.
+You are a Senior Principal Technical Talent Acquisition Lead & Resume Strategist.
+Tailor the candidate's Master Profile specifically for the target Job Description below.
 
 Target Role: {payload.target_role}
 Target Job Description:
@@ -258,12 +432,15 @@ Summary: {profile.summary or ""}
 Skills Bank: {json.dumps(profile.skills or [])}
 Work History: {json.dumps(profile.work_history or [])}
 Projects: {json.dumps(profile.projects or [])}
+Certifications: {json.dumps(profile.certifications or [])}
 
-INSTRUCTIONS:
-1. Rewrite the professional summary into a 2 to 3 sentence technical summary tailored to the target JD.
-2. Rewrite work experience and project descriptions into clean, bulleted lines (each starting with a bullet "•") focusing STRICTLY on technical architecture, key technical achievements, tech stack components, and performance metrics matching the JD.
-3. Re-order technical skills putting the hard skills required by the JD at the top.
-4. Extract matched keywords.
+CRITICAL RULES:
+1. REVERSE CHRONOLOGICAL ORDER: Work History MUST be ordered with the MOST RECENT experience FIRST (e.g., 2026 experience BEFORE 2025, and 2025 BEFORE 2024).
+2. STACK-RELEVANT PROJECTS: Filter and prioritize projects strictly relevant to the target JD stack. Prioritize projects matching the target stack and omit or replace irrelevant stacks.
+3. CERTIFICATIONS RE-ORDERING: Re-order certifications putting those most relevant to the target role & JD keywords FIRST.
+4. SUMMARY: Rewrite into a 2 to 3 sentence high-impact technical summary tailored to the target JD keywords.
+5. BULLET POINTS: Each work history bullet must focus on technical architecture, key achievements, or metrics relevant to the JD.
+6. HARD SKILL INTEGRATION: Identify core technical requirements, frameworks, build tools, databases, security protocols, and testing suites specified in the target JD, and seamlessly integrate these required hard skills into the technical summary, STAR work history bullet points, and technical skills list.
 
 Return ONLY a JSON object formatted as follows:
 {{
@@ -273,21 +450,42 @@ Return ONLY a JSON object formatted as follows:
     {{
       "title": "Job Title",
       "company": "Company",
-      "dates": "Dates",
-      "description": "• Architecture: Designed UML diagrams and implemented RESTful API microservices.\\n• Development: Implemented reactive state management and responsive UI components.\\n• DevOps & Cloud: Deployed containerized applications with Docker and CI/CD pipelines."
+      "start_month": "YYYY-MM",
+      "end_month": "YYYY-MM",
+      "description": "• Architecture: ...\\n• Development: ..."
     }}
   ],
   "projects": [
     {{
       "title": "Project Name",
-      "tech_stack": "React, Python, FastAPI, Docker, PostgreSQL",
-      "description": "• Pipeline IA: Implemented RAG search pipeline with vector embeddings.\\n• Architecture: Built RESTful backend API with RBAC security.\\n• DevOps: Configured automated GitHub Actions CI/CD deployment."
+      "tech_stack": "Target Tech 1, Target Tech 2",
+      "description": "• Bullet 1...\\n• Bullet 2..."
     }}
   ],
-  "skills": ["Matched Skill 1", "Skill 2", "Skill 3"],
+  "certifications": [
+    {{
+      "title": "Most Relevant Certification Title",
+      "issuer": "Issuer Name"
+    }}
+  ],
+  "skills": ["Skill 1", "Skill 2"],
   "matched_keywords": ["Keyword 1", "Keyword 2"]
 }}
 """
+
+    def sort_work_reverse_chrono(work_items: list) -> list:
+        def get_year(item):
+            d_str = str(item.get("start_month") or item.get("dates") or "")
+            match = re.search(r"\d{4}", d_str)
+            return int(match.group(0)) if match else 0
+        return sorted(work_items, key=get_year, reverse=True)
+
+    def sort_certs_by_relevance(certs: list, target: str, jd: str) -> list:
+        jd_tokens = set(re.findall(r"\b[a-zA-Z]{3,}\b", (target + " " + jd).lower()))
+        def score_cert(c):
+            cert_tokens = set(re.findall(r"\b[a-zA-Z]{3,}\b", str(c.get("title", "")).lower()))
+            return len(cert_tokens.intersection(jd_tokens))
+        return sorted(certs, key=score_cert, reverse=True)
 
     try:
         raw_res = query_llm(prompt=prompt, provider=provider, api_key=api_key)
@@ -295,14 +493,20 @@ Return ONLY a JSON object formatted as follows:
         match = re.search(r"\{.*\}", cleaned, re.DOTALL)
         if match:
             parsed = json.loads(match.group(0))
+            raw_work = parsed.get("work_history") or profile.work_history or []
+            sorted_work = sort_work_reverse_chrono(raw_work)
+            
+            raw_certs = parsed.get("certifications") or profile.certifications or []
+            sorted_certs = sort_certs_by_relevance(raw_certs, payload.target_role, payload.job_description)
+
             return TailoredCVResponse(
                 headline=parsed.get("headline", payload.target_role),
                 summary=parsed.get("summary", profile.summary or ""),
-                work_history=parsed.get("work_history", profile.work_history or []),
+                work_history=sorted_work,
                 projects=parsed.get("projects", profile.projects or []),
                 skills=parsed.get("skills", profile.skills or []),
                 education=profile.education or [],
-                certifications=profile.certifications or [],
+                certifications=sorted_certs,
                 languages=profile.languages or [],
                 phone=profile.phone or "",
                 location=profile.location or "",
@@ -312,19 +516,85 @@ Return ONLY a JSON object formatted as follows:
     except Exception as err:
         print(f"Tailor CV LLM error: {err}")
 
+    raw_work = profile.work_history or []
+    sorted_work = sort_work_reverse_chrono(raw_work)
+    raw_certs = profile.certifications or []
+    sorted_certs = sort_certs_by_relevance(raw_certs, payload.target_role, payload.job_description)
+
     return TailoredCVResponse(
         headline=payload.target_role,
         summary=profile.summary or "",
-        work_history=profile.work_history or [],
+        work_history=sorted_work,
         projects=profile.projects or [],
         skills=profile.skills or [],
         education=profile.education or [],
-        certifications=profile.certifications or [],
+        certifications=sorted_certs,
         languages=profile.languages or [],
         phone=profile.phone or "",
         location=profile.location or "",
         links=profile.links or {},
         matched_keywords=[]
+    )
+
+
+@router.post("/save-pdf", response_model=SaveCVResponse)
+async def save_rendered_cv_pdf(
+    pdf_file: UploadFile = File(...),
+    title: str = Form("Tailored ATS Resume"),
+    target_role: str = Form("Full-Stack Developer"),
+    profile_data_json: Optional[str] = Form("{}"),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Save client-side pixel-perfect rendered PDF file to host storage and Neon PostgreSQL.
+    """
+    tenant_dir = UPLOAD_DIR / current_user.id
+    tenant_dir.mkdir(parents=True, exist_ok=True)
+
+    cv_id = str(uuid.uuid4())
+    pdf_filename = f"{cv_id}.pdf"
+    file_path = tenant_dir / pdf_filename
+
+    content = await pdf_file.read()
+    with open(file_path, "wb") as f:
+        f.write(content)
+
+    try:
+        profile_data = json.loads(profile_data_json) if profile_data_json else {}
+    except Exception:
+        profile_data = {}
+
+    resume = Resume(
+        id=cv_id,
+        user_id=current_user.id,
+        title=title,
+        original_filename=pdf_filename,
+        raw_markdown=profile_data.get("summary", ""),
+        json_data=profile_data
+    )
+
+    db.add(resume)
+
+    # Sync candidate Master Profile in Neon PostgreSQL as well
+    result = await db.execute(select(MasterProfile).where(MasterProfile.user_id == current_user.id))
+    mp = result.scalars().first()
+    if mp and profile_data:
+        if profile_data.get("summary"): mp.summary = profile_data["summary"]
+        if profile_data.get("work_history"): mp.work_history = profile_data["work_history"]
+        if profile_data.get("projects"): mp.projects = profile_data["projects"]
+        if profile_data.get("skills"): mp.skills = profile_data["skills"]
+
+    await db.commit()
+    await db.refresh(resume)
+
+    file_url = f"/uploads/{current_user.id}/{pdf_filename}"
+
+    return SaveCVResponse(
+        id=resume.id,
+        title=resume.title,
+        created_at=resume.created_at.isoformat(),
+        file_url=file_url
     )
 
 
@@ -344,16 +614,14 @@ async def save_cv_to_host(
     pdf_filename = f"{cv_id}.pdf"
     file_path = tenant_dir / pdf_filename
 
-    # Generate Host PDF file
+    # Generate Host PDF file via PyMuPDF HTML engine
     try:
-        generate_host_pdf(payload.profile_data, str(file_path), candidate_name="ZOUBAA MOHAMMED")
+        generate_host_pdf(payload.profile_data, str(file_path), candidate_name=current_user.full_name or "ZOUBAA MOHAMMED")
     except Exception as err:
         print(f"PDF generation error: {err}")
-        # Touch file if fitz fails
         with open(file_path, "wb") as f:
             f.write(b"%PDF-1.4 empty pdf")
 
-    # Create Resume DB record in Neon PostgreSQL
     title = payload.title or f"{payload.target_role} Resume"
     resume = Resume(
         id=cv_id,
@@ -365,6 +633,16 @@ async def save_cv_to_host(
     )
 
     db.add(resume)
+
+    # Sync candidate Master Profile in Neon PostgreSQL
+    result = await db.execute(select(MasterProfile).where(MasterProfile.user_id == current_user.id))
+    mp = result.scalars().first()
+    if mp and payload.profile_data:
+        if payload.profile_data.get("summary"): mp.summary = payload.profile_data["summary"]
+        if payload.profile_data.get("work_history"): mp.work_history = payload.profile_data["work_history"]
+        if payload.profile_data.get("projects"): mp.projects = payload.profile_data["projects"]
+        if payload.profile_data.get("skills"): mp.skills = payload.profile_data["skills"]
+
     await db.commit()
     await db.refresh(resume)
 

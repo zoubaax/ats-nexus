@@ -41,6 +41,14 @@ export const MasterProfileEditor = () => {
   const [certifications, setCertifications] = useState([]);
   const [languages, setLanguages] = useState([]);
 
+  const sanitizeMonthValue = (val) => {
+    if (!val) return '';
+    const match = String(val).match(/^(\d{4})-(\d{2})/);
+    if (match) return `${match[1]}-${match[2]}`;
+    if (/^\d{4}$/.test(String(val))) return `${val}-01`;
+    return '';
+  };
+
   useEffect(() => {
     fetchProfile();
   }, []);
@@ -601,13 +609,13 @@ export const MasterProfileEditor = () => {
                     <label className="block text-[10px] font-medium text-slate-400 mb-1">Start Month & Year</label>
                     <input
                       type="month"
-                      value={work.start_month || ''}
+                      value={sanitizeMonthValue(work.start_month)}
                       onChange={(e) => {
                         const updated = [...workHistory];
                         updated[idx].start_month = e.target.value;
                         setWorkHistory(updated);
                       }}
-                      className="w-full bg-slate-900 border border-slate-800 text-slate-200 text-xs rounded-xl p-2.5 outline-none font-mono"
+                      className="w-full bg-slate-900 border border-slate-800 text-slate-200 text-xs rounded-xl p-2.5 outline-none font-mono [color-scheme:dark] cursor-pointer"
                     />
                   </div>
 
@@ -616,13 +624,13 @@ export const MasterProfileEditor = () => {
                     <input
                       type="month"
                       disabled={work.is_current}
-                      value={work.is_current ? '' : (work.end_month || '')}
+                      value={work.is_current ? '' : sanitizeMonthValue(work.end_month)}
                       onChange={(e) => {
                         const updated = [...workHistory];
                         updated[idx].end_month = e.target.value;
                         setWorkHistory(updated);
                       }}
-                      className="w-full bg-slate-900 border border-slate-800 text-slate-200 text-xs rounded-xl p-2.5 outline-none font-mono disabled:opacity-40"
+                      className="w-full bg-slate-900 border border-slate-800 text-slate-200 text-xs rounded-xl p-2.5 outline-none font-mono [color-scheme:dark] disabled:opacity-40 cursor-pointer"
                     />
                   </div>
 
@@ -823,31 +831,31 @@ export const MasterProfileEditor = () => {
               {/* Month/Year Education Pickers */}
               <div className="grid md:grid-cols-3 gap-3 items-end">
                 <div>
-                  <label className="block text-[10px] font-medium text-slate-400 mb-1">Start Year</label>
+                  <label className="block text-[10px] font-medium text-slate-400 mb-1">Start Month & Year</label>
                   <input
                     type="month"
-                    value={edu.start_year || ''}
+                    value={sanitizeMonthValue(edu.start_year)}
                     onChange={(e) => {
                       const updated = [...education];
                       updated[idx].start_year = e.target.value;
                       setEducation(updated);
                     }}
-                    className="w-full bg-slate-900 border border-slate-800 text-slate-200 text-xs rounded-xl p-2.5 outline-none font-mono"
+                    className="w-full bg-slate-900 border border-slate-800 text-slate-200 text-xs rounded-xl p-2.5 outline-none font-mono [color-scheme:dark] cursor-pointer"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-medium text-slate-400 mb-1">Graduation Year</label>
+                  <label className="block text-[10px] font-medium text-slate-400 mb-1">Graduation Month & Year</label>
                   <input
                     type="month"
                     disabled={edu.is_current}
-                    value={edu.is_current ? '' : (edu.end_year || '')}
+                    value={edu.is_current ? '' : sanitizeMonthValue(edu.end_year)}
                     onChange={(e) => {
                       const updated = [...education];
                       updated[idx].end_year = e.target.value;
                       setEducation(updated);
                     }}
-                    className="w-full bg-slate-900 border border-slate-800 text-slate-200 text-xs rounded-xl p-2.5 outline-none font-mono disabled:opacity-40"
+                    className="w-full bg-slate-900 border border-slate-800 text-slate-200 text-xs rounded-xl p-2.5 outline-none font-mono [color-scheme:dark] disabled:opacity-40 cursor-pointer"
                   />
                 </div>
 
@@ -924,13 +932,13 @@ export const MasterProfileEditor = () => {
                 />
                 <input
                   type="month"
-                  value={cert.issue_date || ''}
+                  value={sanitizeMonthValue(cert.issue_date)}
                   onChange={(e) => {
                     const updated = [...certifications];
                     updated[idx].issue_date = e.target.value;
                     setCertifications(updated);
                   }}
-                  className="bg-slate-900 border border-slate-800 text-slate-200 text-xs rounded-xl p-2.5 outline-none font-mono"
+                  className="bg-slate-900 border border-slate-800 text-slate-200 text-xs rounded-xl p-2.5 outline-none font-mono [color-scheme:dark] cursor-pointer"
                 />
               </div>
             </div>
